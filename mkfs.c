@@ -20,8 +20,8 @@
 // Disk layout:
 // [ boot block | sb block | log | inode blocks | free bit map | data blocks ]
 
-int nbitmap = FSSIZE/(BSIZE*8) + 1;
-int ninodeblocks = NINODES / IPB + 1;
+int nbitmap = (FSSIZE + BSIZE*8 - 1) / (BSIZE*8);  // exact
+int ninodeblocks = (NINODES + IPB - 1) / IPB;       // exact
 int nlog = LOGSIZE;
 int nmeta;    // Number of meta blocks (boot, sb, nlog, inode, bitmap)
 int nblocks;  // Number of data blocks
@@ -158,7 +158,7 @@ main(int argc, char *argv[])
   // fix size of root inode dir
   rinode(rootino, &din);
   off = xint(din.size);
-  off = ((off/BSIZE) + 1) * BSIZE;
+  off = ((off + BSIZE - 1)/BSIZE) * BSIZE;
   din.size = xint(off);
   winode(rootino, &din);
 
@@ -288,7 +288,7 @@ iappend(uint inum, void *xp, int n)
     rsect(x, buf);
     bcopy(p, buf + off - (fbn * BSIZE), n1);
     wsect(x, buf);
-    n -= n1;
+    n -= n1;x`
     off += n1;
     p += n1;
   }
