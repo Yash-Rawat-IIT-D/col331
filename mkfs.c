@@ -288,7 +288,7 @@ iappend(uint inum, void *xp, int n)
     rsect(x, buf);
     bcopy(p, buf + off - (fbn * BSIZE), n1);
     wsect(x, buf);
-    n -= n1;x`
+    n -= n1;
     off += n1;
     p += n1;
   }
