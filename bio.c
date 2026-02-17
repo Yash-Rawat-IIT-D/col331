@@ -32,6 +32,17 @@ struct {
   struct buf head;
 } bcache;
 
+// Cache the current block image as the "old value" for undo logging.
+// We only refresh this snapshot before a block is added to the active log.
+static void
+cache_undo_image(struct buf *b)
+{
+  if (log_has_block(b->blockno))
+    return;
+  memmove(b->undo_data, b->data, BSIZE);
+  b->undo_cached = 1;
+}
+
 void
 binit(void)
 {
@@ -72,6 +83,7 @@ bget(uint dev, uint blockno)
       b->dev = dev;
       b->blockno = blockno;
       b->flags = 0;
+      b->undo_cached = 0; // clear stale undo snapshot on buffer reuse
       b->refcnt = 1;
       return b;
     }
@@ -89,6 +101,8 @@ bread(uint dev, uint blockno)
   if((b->flags & B_VALID) == 0) {
     iderw(b);
   }
+  // Keep a pre-modify snapshot available with no extra disk read.
+  cache_undo_image(b);
   return b;
 }
 
@@ -101,9 +115,11 @@ bwrite(struct buf *b)
 }
 
 struct buf* 
-bread_wr(uint dev, uint blockno) {
-  // IMPLEMENT YOUR CODE HERE
-  return 0;
+bread_wr(uint dev, uint blockno)
+{
+  // A write-intended read uses the same buffer path and eagerly refreshes
+  // the cached old image if this block is not already logged in the txn.
+  return bread(dev, blockno);
 }
 
 // Release a buffer.

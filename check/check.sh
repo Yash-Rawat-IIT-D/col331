@@ -28,7 +28,21 @@ fi
 echo "Setting the test directory"
 
 tar -xzvf "$submission" -C ./test_dir
-cp out* *.sh ./test_dir
+
+# Copy test_lab2.sh to test_dir root (from extracted check/ or current directory)
+if [ -f "./test_dir/check/test_lab2.sh" ]; then
+    cp ./test_dir/check/test_lab2.sh ./test_dir/
+elif [ -f "./test_lab2.sh" ]; then
+    cp ./test_lab2.sh ./test_dir/
+fi
+
+# Copy outputs directory to test_dir root (from extracted check/ or current directory)
+if [ -d "./test_dir/check/outputs" ]; then
+    cp -r ./test_dir/check/outputs ./test_dir/
+elif [ -d "./outputs" ]; then
+    cp -r ./outputs ./test_dir/
+fi
+
 cd ./test_dir
 
 # Change the gcc binary

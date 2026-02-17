@@ -70,6 +70,7 @@ void            microdelay(int);
 // log.c
 void            initlog(int dev);
 void            log_write(struct buf*);
+int             log_has_block(uint blockno);
 void            begin_op();
 void            end_op();
 
