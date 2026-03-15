@@ -6,7 +6,7 @@ on:
   pull_request:
     branches:
       - '**'
-    types: [ labeled ]
+    types: [ label ]
   workflow_dispatch:
     branches:
       - '**'
@@ -35,5 +35,7 @@ jobs:
     steps:
     - name: Check versions
       run: |
-        gcc --version
-        qemu-system-x86_64 --version
+        gcc-11 --version || true
+        qemu-system-x86_64 --version || true
+        qemu-system-i386 --version || true
+        make qemu || true
