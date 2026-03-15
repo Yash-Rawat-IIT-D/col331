@@ -191,20 +191,40 @@ sys_exec(void)
   uint uargv, uarg;
 
   if(argstr(0, &path) < 0 || argint(1, (int*)&uargv) < 0){
+    qemu_debug("exec: arg parsing failed\n");
     return -1;
   }
+
+  qemu_debug("exec: path ptr = 0x%x\n", path);
+  qemu_debug("exec: argv user pointer = 0x%x\n", uargv);
+
   memset(argv, 0, sizeof(argv));
-  for(i=0;; i++){
+
+  for(i = 0;; i++){
     if(i >= NELEM(argv))
       return -1;
-    if(fetchint(uargv+4*i, (int*)&uarg) < 0)
+
+    qemu_debug("exec: reading argv[%d] from user addr 0x%x\n", i, uargv + 4*i);
+
+    if(fetchint(uargv + 4*i, (int*)&uarg) < 0){
+      qemu_debug("exec: fetchint failed\n");
       return -1;
+    }
+
+    qemu_debug("exec: argv[%d] pointer = 0x%x\n", i, uarg);
+
     if(uarg == 0){
       argv[i] = 0;
       break;
     }
-    if(fetchstr(uarg, &argv[i]) < 0)
+
+    if(fetchstr(uarg, &argv[i]) < 0){
+      qemu_debug("exec: fetchstr failed\n");
       return -1;
+    }
+
+    qemu_debug("exec: argv[%d] string = %s\n", i, argv[i]);
   }
+
   return exec(path, argv);
 }

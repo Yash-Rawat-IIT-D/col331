@@ -217,3 +217,85 @@ consoleinit(void)
   devsw[CONSOLE].write = consolewrite;
   devsw[CONSOLE].read = consoleread;
 }
+
+static void
+debug_putc(int c)
+{
+  outb(0xE9, c);
+}
+
+static void
+debug_printint(int xx, int base, int sign)
+{
+  static char digits[] = "0123456789abcdef";
+  char buf[16];
+  int i;
+  uint x;
+
+  if(sign && (sign = xx < 0))
+    x = -xx;
+  else
+    x = xx;
+
+  i = 0;
+  do{
+    buf[i++] = digits[x % base];
+  } while((x /= base) != 0);
+
+  if(sign)
+    buf[i++] = '-';
+
+  while(--i >= 0)
+    debug_putc(buf[i]);
+}
+
+void
+qemu_debug(char *fmt, ...)
+{
+  int i, c;
+  uint *argp;
+  char *s;
+
+  if(fmt == 0)
+    return;
+
+  argp = (uint*)(void*)(&fmt + 1);
+
+  for(i = 0; (c = fmt[i] & 0xff) != 0; i++){
+    if(c != '%'){
+      debug_putc(c);
+      continue;
+    }
+
+    c = fmt[++i] & 0xff;
+    if(c == 0)
+      break;
+
+    switch(c){
+    case 'd':
+      debug_printint(*argp++, 10, 1);
+      break;
+
+    case 'x':
+    case 'p':
+      debug_printint(*argp++, 16, 0);
+      break;
+
+    case 's':
+      if((s = (char*)*argp++) == 0)
+        s = "(null)";
+      for(; *s; s++)
+        debug_putc(*s);
+      break;
+
+    case '%':
+      debug_putc('%');
+      break;
+
+    default:
+      debug_putc('%');
+      debug_putc(c);
+      break;
+    }
+  }
+}

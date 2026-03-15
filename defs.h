@@ -14,6 +14,7 @@ void            brelse(struct buf *b);
 
 // console.c
 void            cprintf(char*, ...);
+void            qemu_debug(char*, ...);
 void            halt(void) __attribute__((noreturn));
 void            panic(char*) __attribute__((noreturn));
 void            consoleintr(int(*)(void));

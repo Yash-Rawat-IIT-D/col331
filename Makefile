@@ -146,7 +146,8 @@ clean:
 	*.o *.d *.asm *.sym bootblock \
 	kernel xv6.img vectors.S \
 	.gdbinit mkfs fs.img initcode.out initcode \
-	$(UPROGS)
+	$(UPROGS) \
+	*.log
 
 # try to generate a unique GDB port
 GDBPORT = $(shell expr `id -u` % 5000 + 25002)
@@ -160,7 +161,10 @@ endif
 
 # For debugging
 # QEMUEXTRA = -no-reboot -d int,cpu_reset
-QEMUOPTS = -drive file=xv6.img,index=0,media=disk,format=raw -drive file=fs.img,index=1,media=disk,format=raw -smp $(CPUS) -m 512 $(QEMUEXTRA)
+# Attach fs.img as disk1 (index=1), like the C version
+QEMUOPTS = -drive file=xv6.img,index=0,media=disk,format=raw \
+           -drive file=fs.img,index=1,media=disk,format=raw \
+           -smp $(CPUS) -m 512 $(QEMUEXTRA)
 
 qemu: xv6.img fs.img
 	$(QEMU) -nographic $(QEMUOPTS)
@@ -171,3 +175,10 @@ qemu: xv6.img fs.img
 qemu-gdb: xv6.img .gdbinit fs.img
 	@echo "*** Now run 'gdb'." 1>&2
 	$(QEMU) -nographic $(QEMUOPTS) -S $(QEMUGDB)
+
+qemu-full-debug: xv6.img fs.img
+	$(QEMU) -nographic $(QEMUOPTS) \
+	-debugcon file:qemu_debug.log \
+	-global isa-debugcon.iobase=0xe9 \
+	-D qemu.log -d guest_errors \
+	2> qemu_err.log
