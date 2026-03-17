@@ -1,7 +1,7 @@
 name: Discord PR Notification
 
 on:
-  pull_request:
+  pull_request_target:
     # Trigger the workflow when a pull request is closed (merged or not merged) // Shall Filter in scripts/notify.py  
     types: [closed] 
   workflow_dispatch: 
