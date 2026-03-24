@@ -66,7 +66,7 @@ argptr(int n, char **pp, int size)
     return -1;
   if(size < 0 || (uint)i >= curproc->sz || (uint)i+size > curproc->sz)
     return -1;
-  *pp = (char*)i;
+  *pp = (char*)(i + curproc->offset);
   return 0;
 }
 
@@ -88,12 +88,16 @@ extern int sys_close(void);
 extern int sys_open(void);
 extern int sys_write(void);
 extern int sys_exec(void);
+extern int sys_set_sched_policy(void);
+extern int sys_get_sched_policy(void);
 
 static int (*syscalls[])(void) = {
 [SYS_open]    sys_open,
 [SYS_write]   sys_write,
 [SYS_close]   sys_close,
 [SYS_exec]    sys_exec,
+[SYS_set_sched_policy] sys_set_sched_policy,
+[SYS_get_sched_policy] sys_get_sched_policy,
 };
 
 void

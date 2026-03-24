@@ -10,7 +10,17 @@ struct {
   struct proc proc[NPROC];
 } ptable;
 
-static struct proc *initproc;
+enum {
+  FG_POLICY = 0,
+  BG_POLICY = 1,
+  FG_SLOTS = 9,
+  TOTAL_SLOTS = 10,
+  NO_PROC_INDEX = -1,
+};
+
+static int last_fg_index = NO_PROC_INDEX;
+static int last_bg_index = NO_PROC_INDEX;
+static int sched_slot;
 
 int nextpid = 1;
 extern void trapret(void);
@@ -74,8 +84,25 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)trapret;
+  p->policy = FG_POLICY;
 
   return p;
+}
+
+static int
+find_runnable_index_by_policy(int policy, int last_index)
+{
+  int i;
+  int index;
+
+  for(i = 1; i <= NPROC; i++){
+    index = (last_index + i) % NPROC;
+    if(ptable.proc[index].state == RUNNABLE &&
+       ptable.proc[index].policy == policy)
+      return index;
+  }
+
+  return NO_PROC_INDEX;
 }
 
 // Set up first process.
@@ -86,8 +113,6 @@ pinit(int pol)
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
   p = allocproc();
-  
-  initproc = p;
 
   memmove(p->offset, _binary_initcode_start, (int)_binary_initcode_size);
   memset(p->tf, 0, sizeof(*p->tf));
@@ -103,6 +128,7 @@ pinit(int pol)
 
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
+  p->policy = pol;
 
   p->state = RUNNABLE;
 }
@@ -116,26 +142,48 @@ pinit(int pol)
 void
 scheduler(void)
 {
+  int index;
   struct proc *p;
   struct cpu *c = mycpu();
+  int preferred_policy;
+
   c->proc = 0;
   
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
-    // Loop over process table looking for process to run.
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
+    preferred_policy = (sched_slot < FG_SLOTS) ? FG_POLICY : BG_POLICY;
+    if(preferred_policy == FG_POLICY)
+      index = find_runnable_index_by_policy(FG_POLICY, last_fg_index);
+    else
+      index = find_runnable_index_by_policy(BG_POLICY, last_bg_index);
 
-      // Switch to chosen process. 
-      c->proc = p;
-      p->state = RUNNING;
-
-      switchuvm(p);
-      swtch(&(c->scheduler), p->context);
+    if(index == NO_PROC_INDEX){
+      if(preferred_policy == FG_POLICY)
+        index = find_runnable_index_by_policy(BG_POLICY, last_bg_index);
+      else
+        index = find_runnable_index_by_policy(FG_POLICY, last_fg_index);
     }
+
+    if(index == NO_PROC_INDEX)
+      continue;
+
+    p = &ptable.proc[index];
+
+    if(p->policy == FG_POLICY)
+      last_fg_index = index;
+    else
+      last_bg_index = index;
+
+    sched_slot = (sched_slot + 1) % TOTAL_SLOTS;
+
+    // Switch to chosen process.
+    c->proc = p;
+    p->state = RUNNING;
+
+    switchuvm(p);
+    swtch(&(c->scheduler), p->context);
   }
 }
 
