@@ -35,7 +35,7 @@ main(void)
   struct inode console;
   mknod(&console, "console", CONSOLE, CONSOLE);
   seginit();       // segment descriptors
-  pinit();         // first process
-  pinit();         // another process
+  pinit(0);        // first process
+  pinit(1);        // second process 
   scheduler();     // start running processes
 }

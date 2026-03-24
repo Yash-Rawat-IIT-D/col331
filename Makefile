@@ -22,6 +22,7 @@ OBJS = \
 	kalloc.o\
 	syscall.o\
 	sysfile.o\
+	sysproc.o\
 	exec.o\
 
 # Cross-compiling (e.g., on Mac OS X)
@@ -145,7 +146,7 @@ clean:
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \
 	*.o *.d *.asm *.sym bootblock \
 	kernel xv6.img vectors.S \
-	.gdbinit mkfs fs.img initcode.out initcode \
+	.gdbinit mkfs fs.img initcode \
 	$(UPROGS)
 
 # try to generate a unique GDB port

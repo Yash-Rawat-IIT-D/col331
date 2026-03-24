@@ -13,10 +13,16 @@ main(void)
   int ret = get_sched_policy();
   printf(fd, "Set sched policy of process to : %d \n", ret);
 
-  while(1) {
+  for (int j = 0; j < 15; j++) {
     int i = 0;
     while(i < 100000000) {i++;}   
     printf(fd, "Task done by process with sched policy %d ... \n", ret);
+  }
+
+  if (ret == 0) {
+    printf(fd, "Hurray Foreground Process Exited\n");
+  } else {
+    printf(fd, "Hurray Background Process Exited\n");
   }
 
   close(fd);

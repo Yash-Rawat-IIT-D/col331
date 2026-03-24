@@ -21,7 +21,7 @@ void            consoleinit(void);
 void            consputc(int);
 
 // exec.c
-int             exec(char*, char**);
+int             exec(char*);
 
 // file.c
 struct file*    filealloc(void);
@@ -93,7 +93,7 @@ void            picinit(void);
 
 // proc.c
 int             cpuid(void);
-void            pinit(void);
+void            pinit(int); 
 struct cpu*     mycpu(void);
 struct proc*    myproc();
 void            scheduler(void) __attribute__((noreturn));
