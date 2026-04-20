@@ -3,6 +3,13 @@
 #include "types.h"
 #include "defs.h"
 #include "param.h"
+#include "traps.h"
+#include "spinlock.h"
+#include "sleeplock.h"
+#include "fs.h"
+#include "file.h"
+#include "mmu.h"
+#include "proc.h"
 #include "x86.h"
 
 #define COM1    0x3f8
@@ -30,6 +37,12 @@ uartinit(void)
     return;
   uart = 1;
 
+  // Acknowledge pre-existing interrupt conditions;
+  // enable interrupts.
+  inb(COM1+2);
+  inb(COM1+0);
+  ioapicenable(IRQ_COM1, 0);
+
   // Announce that we're here.
   for(p="xv6...\n"; *p; p++)
     uartputc(*p);
@@ -42,6 +55,23 @@ uartputc(int c)
 
   if(!uart)
     return;
-  for(i = 0; i < 128 && !(inb(COM1+5) & 0x20); i++);
+  for(i = 0; i < 128 && !(inb(COM1+5) & 0x20); i++)
+    microdelay(10);
   outb(COM1+0, c);
+}
+
+static int
+uartgetc(void)
+{
+  if(!uart)
+    return -1;
+  if(!(inb(COM1+5) & 0x01))
+    return -1;
+  return inb(COM1+0);
+}
+
+void
+uartintr(void)
+{
+  consoleintr(uartgetc);
 }
