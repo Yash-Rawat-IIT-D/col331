@@ -5,10 +5,26 @@
 #include "mmu.h"
 #include "x86.h"
 #include "proc.h"
+#include "spinlock.h"
 
 #define BLOCK_SIZE 512
 
 int free_swap_slots[NSWAPSLOTS];
+struct spinlock swaplock;
+
+static int reserve_swap_slot(void) {
+    acquire(&swaplock);
+    for (int slot_idx = 0; slot_idx < NSWAPSLOTS; slot_idx++) {
+      if (free_swap_slots[slot_idx]) {
+        uint blockno = SWAP_SLOT_START + (PGSIZE / BLOCK_SIZE) * slot_idx;
+        free_swap_slots[slot_idx] = 0;
+        release(&swaplock);
+        return blockno;
+      }
+    }
+    release(&swaplock);
+    return -1;
+}
 
 static void flush_local_tlb(void) {
     struct proc *p = myproc();
@@ -21,6 +37,7 @@ static void flush_local_tlb(void) {
 }
 
 void swapinit() {
+    initlock(&swaplock, "swap");
     for (int i = 0; i < NSWAPSLOTS; i++) {
         free_swap_slots[i] = 1; // 1 means free, 0 means used
     }
@@ -28,12 +45,16 @@ void swapinit() {
 
 void mark_swap_slot_free(uint blockno) {
     int slot_index = (blockno - SWAP_SLOT_START) / 8;
+    acquire(&swaplock);
     free_swap_slots[slot_index] = 1;
+    release(&swaplock);
 }
 
 void mark_swap_slot_used(uint blockno) {
     int slot_index = (blockno - SWAP_SLOT_START) / 8;
+    acquire(&swaplock);
     free_swap_slots[slot_index] = 0;
+    release(&swaplock);
 }
 
 
@@ -73,24 +94,21 @@ void swap_out_page(pte_t *page) {
     /* TODO: Implement this function */
     /* Your code here */
     /* -------------------------------------------------------------- */
-    for(int slot_idx = 0; slot_idx < NSWAPSLOTS; slot_idx++) {
-      if(free_swap_slots[slot_idx]) {
-        uint pa_page = PTE_ADDR(*page);
-        uint page_flags = PTE_FLAGS(*page);
-        uint block_no = SWAP_SLOT_START + (PGSIZE / BLOCK_SIZE) * slot_idx;  
-        // Step 1 -> Makring Swap slot used and Actually moving it from DRAM to FS Blocks
-        mark_swap_slot_used(block_no);
-        move_page_memory_to_disk(ROOTDEV, P2V(pa_page), block_no);
-        // Step 2 -> Mark the page not present in the PTE, mark as swapped
-        page_flags &= ~PTE_P; page_flags |= PTE_SO; 
-        // Step 3 -> Remember the swap block no in Page Base Address
-        *(page) = (block_no << PTXSHIFT)  | (page_flags & 0XFFF);
-        flush_local_tlb();
-        // Step 4 -> Adding this page back to free list
-        kfree(P2V(pa_page));
+    uint block_no = reserve_swap_slot();
+    if(block_no != (uint)-1) {
+      uint pa_page = PTE_ADDR(*page);
+      uint page_flags = PTE_FLAGS(*page);
+      // Step 1 -> Makring Swap slot used and Actually moving it from DRAM to FS Blocks
+      move_page_memory_to_disk(ROOTDEV, P2V(pa_page), block_no);
+      // Step 2 -> Mark the page not present in the PTE, mark as swapped
+      page_flags &= ~PTE_P; page_flags |= PTE_SO;
+      // Step 3 -> Remember the swap block no in Page Base Address
+      *(page) = (block_no << PTXSHIFT)  | (page_flags & 0XFFF);
+      flush_local_tlb();
+      // Step 4 -> Adding this page back to free list
+      kfree(P2V(pa_page));
 
-        return;
-      }
+      return;
     }
     panic("No free swap block found !");
 }
