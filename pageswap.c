@@ -6,6 +6,8 @@
 #include "x86.h"
 #include "proc.h"
 
+#define BLOCK_SIZE 512
+
 int free_swap_slots[NSWAPSLOTS];
 
 static void flush_local_tlb(void) {
