@@ -25,7 +25,7 @@ int sleep(int);
 int uptime(void);
 int getrss(void);
 int getNumFreePages(void);
-
+int getNumFreeSwapSlots(void);
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);

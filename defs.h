@@ -100,6 +100,7 @@ void            swap_in_page(void);
 void            swapinit(void);
 void            mark_swap_slot_free(uint blockno);
 void            mark_swap_slot_used(uint blockno);
+int             num_free_swap_slots(void);
 
 // picirq.c
 void            picenable(int);
@@ -140,6 +141,7 @@ void            setrunnable(struct proc*);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
+
 
 // spinlock.c
 void            acquire(struct spinlock*);

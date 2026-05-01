@@ -22,3 +22,4 @@
 #define SYS_close  21
 #define SYS_getrss 22
 #define SYS_getNumFreePages  23
+#define SYS_getNumFreeSwapSlots 24

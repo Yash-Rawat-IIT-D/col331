@@ -12,6 +12,11 @@
 #include "fs.h"
 #include "file.h"
 
+int
+sys_getNumFreeSwapSlots(void)
+{
+  return num_free_swap_slots();  
+}
 
 int
 sys_getNumFreePages(void)

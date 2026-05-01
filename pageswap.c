@@ -153,3 +153,13 @@ void swap_in_page(void) {
     *page = V2P(mem) | (old_flags & 0xFFF);
     flush_local_tlb();
 }
+
+int num_free_swap_slots(void) {
+  acquire(&swaplock);
+  int count_free_swap_slots = 0;
+  for(int i = 0; i < NSWAPSLOTS; i++) {
+    count_free_swap_slots += free_swap_slots[i]; // Since 1 means free and 0 means used
+  }
+  release(&swaplock);
+  return free_swap_slots;
+}
